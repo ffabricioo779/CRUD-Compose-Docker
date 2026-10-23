@@ -1,112 +1,150 @@
-# CRUD de Produtos com Docker Compose
+# Projeto CRUD com Docker Compose
 
-## 1. Descrição do projeto
+Este projeto foi desenvolvido como parte das atividades da faculdade, com o objetivo de colocar em prática conceitos de **Docker, Docker Compose e DevOps**.
 
-Aplicação web simples em **PHP** para gerenciamento de **Produtos**, implementando as quatro
-operações de um CRUD (Create, Read, Update, Delete). Os dados são armazenados em um banco
-**MySQL** e todo o ambiente (aplicação + banco + interface de administração) é orquestrado com
-**Docker Compose**.
+Criamos uma aplicação web simples para cadastrar e gerenciar produtos, utilizando **PHP e MySQL**. Também configuramos containers para executar o sistema e um workflow no **GitHub Actions** para realizar o deploy em um servidor com runner *self-hosted*.
 
-A entidade **Produto** possui os seguintes campos:
+## Equipe
 
-- `id` — chave primária, auto incremento
-- `nome` — varchar(100)
-- `descricao` — texto
-- `estoque` — quantidade em estoque (inteiro)
+- **Fabrício da Silva**
+- **Gustavo Oliveira Alves**
 
-A tabela `produto` é criada automaticamente pelo próprio código PHP (arquivo `conexao.php`),
-que executa um `CREATE TABLE IF NOT EXISTS` assim que a aplicação sobe — não é necessário
-rodar nenhum script SQL manualmente.
+## Sobre o sistema
 
-## 2. Pré-requisitos
+A aplicação permite realizar as quatro operações de um CRUD (*Create, Read, Update e Delete*):
 
-- [Docker](https://docs.docker.com/get-docker/) instalado
-- [Docker Compose](https://docs.docker.com/compose/install/) instalado (já vem junto com o
-  Docker Desktop nas versões mais recentes)
+- **Cadastrar:** adicionar um produto com nome, descrição e quantidade em estoque.
+- **Listar:** visualizar os produtos cadastrados.
+- **Editar:** alterar as informações de um produto.
+- **Excluir:** remover um produto cadastrado.
 
-Não é necessário ter PHP ou MySQL instalados na máquina — tudo roda dentro dos containers.
+Os dados são armazenados no banco MySQL. A tabela `produto` é criada automaticamente pela aplicação quando a conexão é estabelecida, caso ainda não exista.
 
-## 3. Passo a passo para executar o projeto
+## Estrutura do repositório
 
-1. Clone o repositório:
+```text
+.
+├── .github/
+│   └── workflows/
+│       └── deploy.yml       # Workflow de deploy pelo GitHub Actions
+├── src2/
+│   ├── conexao.php          # Conexão e criação da tabela no MySQL
+│   ├── criar.php            # Cadastro de produtos
+│   ├── editar.php           # Edição de produtos
+│   ├── excluir.php          # Exclusão de produtos
+│   └── index.php            # Listagem dos produtos
+├── docker-compose.yml      # Configuração dos containers
+└── README.md               # Documentação do projeto
+```
 
-   ```bash
-   git clone <URL_DO_REPOSITORIO>
-   cd <PASTA_DO_REPOSITORIO>
-   ```
+## Docker Compose
 
-2. Suba os containers:
+Utilizamos o **Docker Compose** para executar os serviços necessários sem precisar instalar PHP, Apache ou MySQL diretamente na máquina.
 
-   ```bash
-   docker-compose up -d
-   ```
+O arquivo `docker-compose.yml` configura três containers:
 
-3. A criação da tabela é automática: ao subir, o container `php` executa `conexao.php` na
-   primeira requisição, que roda um `CREATE TABLE IF NOT EXISTS produto (...)`. Não é preciso
-   nenhum comando manual de SQL.
+| Serviço | Função | Acesso |
+|---|---|---|
+| **PHP + Apache** | Executa a aplicação web. | `http://localhost:8080` |
+| **MySQL** | Armazena os produtos cadastrados. | Porta `3306` |
+| **phpMyAdmin** | Permite visualizar e administrar o banco de dados pelo navegador. | `http://localhost:8081` |
 
-4. Acesse a aplicação no navegador:
+Os containers se comunicam pela rede `minha-rede`. Também configuramos o volume `mysql_data`, que mantém os dados do banco mesmo quando os containers são interrompidos e recriados, desde que o volume não seja removido.
 
-   - Aplicação: [http://localhost:8080](http://localhost:8080)
-   - phpMyAdmin (opcional, para inspecionar o banco): [http://localhost:8081](http://localhost:8081)
-     (servidor: `mysql`, usuário: `app`, senha: `app`)
+## Como executar o projeto
 
-5. Para derrubar os containers:
+Antes de começar, é necessário ter **Docker** e **Docker Compose** instalados e funcionando.
 
-   ```bash
-   docker-compose down
-   ```
+**1. Clone o repositório:**
 
-   Para derrubar e também apagar os dados persistidos:
+```bash
+git clone https://github.com/ffabricioo779/CRUD-Compose-Docker.git
+cd CRUD-Compose-Docker
+```
 
-   ```bash
-   docker-compose down -v
-   ```
+**2. Inicie os containers:**
 
-## 4. Explicação do `docker-compose.yml`
+```bash
+docker compose up -d
+```
 
-O arquivo define três serviços conectados pela rede personalizada `minha-rede` (tipo `bridge`),
-que permite que os containers se comuniquem entre si pelo **nome do serviço** em vez de IP.
+**3. Acesse o sistema no navegador:**
 
-- **`php`** — roda a aplicação. Usa a imagem oficial `php:8.3-apache` (Apache + PHP já prontos).
-  O código-fonte da pasta `./src2` é montado como volume dentro do container em
-  `/var/www/html`, então qualquer alteração local é refletida imediatamente. Na inicialização,
-  o comando do serviço instala as extensões `mysqli`, `pdo` e `pdo_mysql` (necessárias para
-  conectar ao MySQL) antes de iniciar o Apache. A porta `80` do container é mapeada para a
-  `8080` do host. As variáveis de ambiente `DB_HOST`, `DB_USER`, `DB_PASSWORD` e `DB_NAME` são
-  passadas diretamente no `docker-compose.yml` (sem uso de `.env`) e lidas pelo PHP através de
-  `getenv()` em `conexao.php`.
+- Aplicação: [http://localhost:8080](http://localhost:8080)
+- phpMyAdmin: [http://localhost:8081](http://localhost:8081)
 
-- **`mysql`** — roda o banco de dados, usando a imagem oficial `mysql:8.4`. As variáveis de
-  ambiente `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` e `MYSQL_ROOT_PASSWORD` fazem o
-  próprio MySQL criar automaticamente o banco `app` e o usuário de aplicação na primeira
-  subida. Um volume nomeado (`mysql_data`) é montado em `/var/lib/mysql`, garantindo que os
-  dados **não se percam** quando os containers forem reiniciados ou recriados.
+Para acessar o phpMyAdmin, utilize o servidor `mysql` e as credenciais de desenvolvimento configuradas no arquivo `docker-compose.yml`.
 
-- **`phpmyadmin`** — interface web opcional para inspecionar o banco visualmente, conectada ao
-  serviço `mysql` através das variáveis `PMA_HOST` e `PMA_PORT`. Exposta na porta `8081`.
+**4. Para parar e remover os containers:**
 
-Todas as diretivas também estão comentadas linha a linha, em português, diretamente no arquivo
-`docker-compose.yml`.
+```bash
+docker compose down
+```
 
-## 5. Pontos interessantes observados pela dupla
+Se também quiser apagar os dados armazenados no volume do banco, utilize `docker compose down -v`. **Atenção:** esse último comando remove os dados persistidos.
 
-- Utilizamos variáveis de ambiente diretamente no `docker-compose.yml` (seção `environment`)
-  para configurar a conexão do PHP com o banco, o que facilita trocar usuário/senha/host sem
-  alterar uma linha de código PHP.
-- Configuramos um volume nomeado (`mysql_data`) para o serviço `mysql`, garantindo a
-  persistência dos dados mesmo depois de rodar `docker-compose down` e subir de novo.
-- Criamos uma rede `bridge` isolada (`minha-rede`) para que os containers se enxerguem apenas
-  pelo nome do serviço (`mysql`, `php`), sem precisar expor IPs internos e aumentando o
-  isolamento do ambiente.
-- Optamos por instalar as extensões `mysqli`/`pdo_mysql` via `command` no próprio serviço
-  `php`, em vez de criar uma imagem customizada com `Dockerfile`, o que simplificou o setup
-  para esse trabalho.
-- Usar `docker-php-ext-install` a cada `up` deixa a subida um pouco mais lenta, mas evita ter
-  que manter e versionar uma imagem própria — um trade-off aceitável para o escopo do projeto.
+## Automação implementada (GitHub Actions)
 
-## 6. Autores
+Além dos containers, criamos um workflow chamado **Deploy**, localizado em `.github/workflows/deploy.yml`.
 
-- Nome Fabrício da Silva
-- Nome Thaina de Sá
-- Nome Gustavo Oliveira Alves
+| Workflow | Quando executa | O que faz |
+|---|---|---|
+| **Deploy** | Manualmente, pela aba **Actions** do GitHub | Executa comandos Docker em um runner *self-hosted* para reiniciar e atualizar os containers. |
+
+### Deploy com runner self-hosted
+
+Configuramos um runner *self-hosted* para que o GitHub Actions execute comandos diretamente em uma máquina preparada para hospedar a aplicação.
+
+O workflow utiliza os seguintes comandos:
+
+```bash
+docker compose down
+docker compose up -d --build
+```
+
+O primeiro comando encerra e remove os containers da aplicação. O segundo inicia novamente os serviços definidos no Docker Compose.
+
+### Como executar o deploy
+
+1. Acesse o repositório no GitHub.
+2. Abra a aba **Actions**.
+3. Selecione o workflow **Deploy**.
+4. Clique em **Run workflow** e confirme a execução.
+5. Acompanhe os resultados na página de execução do workflow.
+
+Para funcionar, o runner precisa estar online, com Docker e Docker Compose disponíveis, além de possuir permissão para utilizar o Docker.
+
+## Histórico de atividades realizadas
+
+- Criação do repositório e desenvolvimento do CRUD de produtos.
+- Configuração da conexão entre PHP e MySQL.
+- Criação dos containers da aplicação, banco de dados e phpMyAdmin.
+- Configuração da rede interna e do volume de persistência.
+- Execução da aplicação com Docker Compose.
+- Configuração do runner *self-hosted*.
+- Criação do workflow de deploy no GitHub Actions.
+- Organização da documentação do projeto.
+
+## Tecnologias e ferramentas
+
+- **PHP:** desenvolvimento da aplicação.
+- **HTML e Bootstrap:** estrutura e aparência das páginas.
+- **MySQL:** armazenamento dos produtos.
+- **phpMyAdmin:** administração visual do banco de dados.
+- **Docker:** execução dos serviços em containers.
+- **Docker Compose:** organização dos containers, da rede e do volume.
+- **Git e GitHub:** versionamento e compartilhamento do projeto.
+- **GitHub Actions:** execução do workflow de deploy.
+- **Runner self-hosted:** execução do workflow na máquina configurada.
+
+## Conclusão
+
+Com este projeto, conseguimos entender melhor como utilizar containers para executar uma aplicação com banco de dados e como o Docker Compose facilita a configuração de vários serviços ao mesmo tempo.
+
+Também aprendemos a utilizar o GitHub Actions com um runner *self-hosted*, permitindo executar comandos de deploy sem precisar acessar manualmente o terminal da máquina a cada execução.
+
+O projeto nos ajudou a praticar conceitos importantes de **DevOps, conteinerização, persistência de dados e automação**, que poderão ser aplicados em projetos futuros.
+
+---
+
+**Observação:** as senhas presentes no `docker-compose.yml` são adequadas apenas como credenciais de exemplo para um ambiente de estudo. Para utilizar o projeto em produção, é necessário substituí-las e armazená-las de forma segura, além de restringir o acesso ao banco de dados e ao phpMyAdmin.
