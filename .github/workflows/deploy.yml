@@ -1,7 +1,16 @@
+
 name: Deploy
 
 on:
+  push:
+    branches:
+      - main
+
   workflow_dispatch:
+
+concurrency:
+  group: deploy-vm
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -14,6 +23,6 @@ jobs:
       - name: Docker
         run: |
           echo "Iniciando o deploy..."
-          docker compose down
           docker compose up -d --build
+          docker compose ps
           echo "Deploy realizado com sucesso!"
