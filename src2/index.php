@@ -20,7 +20,7 @@ $resultado = $conexao->query($sql);
     <div class="container py-5">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-          <h1 class="h3 mb-0">Produtos - Teste Deploy Automático</h1>
+          <h1 class="h3 mb-0">Produtos</h1>
             <a class="btn btn-success" href="criar.php">+ Novo Produto</a>
         </div>
 
